@@ -1,0 +1,20 @@
+---
+# file: defaults/main
+# variable to be set for this role
+
+cc_uninstall_pkgs:
+  - docker
+  - docker-py
+
+cc_pkgs:
+  - yum-utils
+  - device-mapper-persistent-data
+  - lvm2
+  - rsync
+
+cc_config_dir: "cc-ansible"
+cc_user: "root"
+
+cc_docker_containers:
+  - contrail_command
+  - contrail_psql

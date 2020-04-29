@@ -1,0 +1,71 @@
+---
+# file: group_vars/all
+# vmm
+vmm_topology_type: "{{ lookup('env','VMM_TOPO_TYPE') | default('demo', true) }}"
+vmm_user: "{{ lookup('env', 'VMM_USERNAME') | default('', true) }}"
+vmm_topo_type: "{{ vmm_topology_type }}"
+vmm_folder: "{{ vmm.config_dir }}/{{ vmm_topology_type }}"
+vmm_user_ssh_key: "{{ lookup('env','VMM_SSH_KEY') | default('', true) }}"
+laptop_user_ssh_key: "{{ lookup('env','LAPTOP_SSH_KEY') | default('', true) }}"
+
+# Debug flags for testing
+vmm_recreate_flag: "{{ lookup('env','VMM_RECREATE_FLAG') | default('', true) }}"
+clean_command_flag: "{{ lookup('env','CLEAN_COMMAND_FLAG') | default('', true) }}"
+
+# contrail deployment
+contrail:
+  registry_username: "__fill__in"
+  registry_password: "__fill__in"
+  release_tag: "{{ lookup('env', 'CONTRAIL_RELEASE_TAG') | default('1912.32', true) }}"
+  registry: hub.juniper.net/contrail
+  auth_mode: no-auth
+  cc_dir: "/root/cc-ansible"
+
+# openstack deployment
+openstack:
+  release_tag: "queens"
+  admin_password: "c0ntrail123"
+
+# appformix deployment
+enable_afx_controller: true
+enable_afx_flow: true
+
+appformix:
+  xflow_file_location: /opt/software/xflow
+  ctrl_file_location: /opt/software/appformix
+  license_file: /opt/software/appformix/appformix-internal-openstack-3.1.sig
+  xflow_retention_period: 7200
+  xflow_inband_collector_vip: 172.16.80.100
+  xflow_inband_cidr: 172.16.80.0/24
+  xflow_inband_intf: ens3f1
+
+# global
+dns:
+  servers:
+    - "172.29.131.60"
+ntp:
+  timezone: "America/Los_Angeles"
+  server_ips:
+    - "ntp.juniper.net"
+
+# junos device credentials
+junos:
+  login: "root"
+  password: "__fill__in"
+
+# linux VM credentials
+linux:
+  username: "root"
+  password: "__fill__in"
+
+# copy Healthbot,Appformix and other images here
+images:
+  location: "/vmm/data/user_disks/"
+  afx_ctrl_location: "/vmm/data/user_disks/{{vmm_user}}/appformix/{{ lookup('env','AFX_VERSION').split('.') | join('_') }}"
+  afx_xflow_location: "/vmm/data/user_disks/{{vmm_user}}/appformix-xflow/{{ lookup('env','AFX_FLOW_VERSION').split('.') | join('_') }}"
+
+# docker repo
+docker_centos_repo_url: "https://download.docker.com/linux/centos/docker-ce.repo"
+
+# system location
+net_path: "/etc/sysconfig/network-scripts"

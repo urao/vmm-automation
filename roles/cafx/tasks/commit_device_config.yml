@@ -1,0 +1,22 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: Push vQFX device configuration
+  shell: "python ./junos_merge_config.py --device_ip {{ item.1 }} --cfg_file {{ role_path }}/files/leaf_{{ item.1 }}.conf"
+  args: 
+    chdir: "../scripts"
+  with_indexed_items:
+    - "{{ groups['qfx'] }}"
+
+- name: Push vMX device configuration
+  shell: "python ./junos_merge_config.py --device_ip {{ item.1 }} --cfg_file {{ role_path }}/files/vmx_{{ item.1 }}.conf"
+  args: 
+    chdir: "../scripts"
+  with_indexed_items:
+    - "{{ groups['mx'] }}"
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

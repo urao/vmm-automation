@@ -1,0 +1,28 @@
+---
+#
+#
+
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- import_tasks: init.yml
+- import_tasks: packages.yml
+- import_tasks: networking.yml
+- import_tasks: services.yml
+
+- name: Schedule system reboot
+  shell: "sleep 5 && reboot"
+  async: 1
+  poll: 0
+  when: selinux_state_disabled.changed
+
+- name: Wait for the reboot to complete if selinux is changed
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 5
+    timeout: 300
+  when: selinux_state_disabled.changed
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

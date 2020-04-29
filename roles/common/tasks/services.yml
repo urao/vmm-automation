@@ -1,0 +1,46 @@
+---
+#
+#
+
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: Disable unnecessary services
+  service: name={{ item }} state=stopped enabled=no
+  with_items:
+    - chronyd
+    - kdump
+    - rpcbind.socket
+
+- name: Enable necessary services
+  service: name={{ item }} state=started enabled=yes
+  with_items:
+    - ntpd
+    - sshd
+    - lldpd
+
+- name: Enable root login for SSH service
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "{{ item.key }}"
+    line: "{{ item.value }}"
+  with_items:
+    - { key: "^PermitRootLogin", value: "PermitRootLogin yes" }
+    - { key: "^#PasswordAuthentication", value: "PasswordAuthentication yes" }
+    - { key: "^#UseDNS", value: "UseDNS no" }
+  notify: restart sshd
+
+- name: Assign root password
+  user:
+    name: "{{ linux.username }}"
+    password: "{{ linux.password | password_hash('sha512') }}"
+    state: present
+
+- name: Set selinux to disabled
+  selinux:
+    policy=targeted
+    state=disabled
+  register: selinux_state_disabled
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

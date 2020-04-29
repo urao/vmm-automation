@@ -1,0 +1,31 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: Wait for 30 seconds
+  pause:
+    seconds: 30
+
+- name: Copy vmm config file into config folder
+  copy:
+    src: "{{ vmm.config_filename }}"
+    dest: "{{ vmm_folder }}"
+
+- name: Copy VMs ifcfg-network configuration files into config folder
+  copy:
+    src: "{{ item.hostname }}-ifcfg"
+    dest: "{{ vmm_folder }}"
+  loop: "{{ instances.VMs }}"
+  when: instances.VMs is defined and item.ports is defined
+
+- name: Copy VMs route configuration files into config folder
+  copy:
+    src: "{{ item.hostname }}-route"
+    dest: "{{ vmm_folder }}"
+  loop: "{{ instances.VMs }}"
+  when: instances.VMs is defined and item.routes is defined
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

@@ -1,0 +1,16 @@
+############### Master settings ###############
+# Specify below host's ip address on which sshd is listening on the default
+# port. Don't use localhost or loop-back address. This is a mandatory key.
+
+host_ip: {{ ansible_default_ipv4.address | default(ansible_all_ipv4_addresses[0]) }}
+
+# Specify username and password
+username: {{ hb_ui_username | default('admin', true) }}
+password: {{ hb_ui_password | default('c0ntrail123', true) }}
+
+# Specify below HTTPS certificate and private key file location.
+# This is a mandatory key.
+
+https:
+    cert_file: /var/local/healthbot/certs/cert.pem
+    key_file: /var/local/healthbot/certs/key.pem

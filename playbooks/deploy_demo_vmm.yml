@@ -1,0 +1,20 @@
+---
+- name: Install required packages, start services on the linux nodes 
+  hosts: computes
+  any_errors_fatal: true
+  gather_facts: yes
+  roles:
+    - common
+  tags:
+    - common,demo
+
+- name: Templatize vMX configuration and commit it
+  hosts: localhost
+  any_errors_fatal: true
+  gather_facts: no
+  roles:
+    - { role: "{{ lookup('env','VMM_TOPO_TYPE') }}", operation: commit_device_config }
+  vars_files:
+    - "../config/{{ lookup('env','VMM_TOPO_TYPE') }}.yml"
+  tags:
+    - demo

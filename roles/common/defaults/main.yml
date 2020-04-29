@@ -1,0 +1,23 @@
+---
+network_pkgs:
+  - ntp
+  - ntpdate
+  - wget
+  - net-tools
+  - tcpdump
+  - traceroute
+  - lldpd
+  - python-pip
+  - wget
+  - htop
+  - iotop
+  - sysstat
+  - rsync
+  - git
+  - jq
+  - iputils
+  - libselinux-python
+  - vim
+  - sysstat
+  - kernel-doc
+  - tree

@@ -1,0 +1,27 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: "Create vmm configuration file"
+  template:
+    src: demo_config.conf.j2
+    dest: "{{ role_path }}/files/{{ vmm.config_filename }}"
+
+- name: "Create the ifcfg-network configuration file"
+  template:
+    src: ifconfig-ens3f1.j2
+    dest: "{{ role_path }}/files/{{ item.hostname }}-ifcfg"
+  loop: "{{ instances.VMs }}"
+  when: instances.VMs is defined and item.ports is defined
+
+- name: "Create configuration files for route configuration"
+  template:
+    src: route-ens3f1.j2
+    dest: "{{ role_path }}/files/{{ item.hostname }}-route"
+  loop: "{{ instances.VMs }}"
+  when: instances.VMs is defined and item.routes is defined
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

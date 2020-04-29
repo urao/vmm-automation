@@ -1,0 +1,18 @@
+---
+# This playbook sets fact for the cafx topology deployment
+
+- name: Set facts for the cafx topology
+  hosts: all
+  gather_facts: no
+  tasks:
+    - set_fact:
+        command_host: "{{ groups['command']|default([]) }}"
+        contrail_hosts: "{{ groups['controllers']|default([]) }}"
+        afx_controller: "{{ groups['afxc']|default([]) }}"
+        afx_flow_controller: "{{ groups['afx_flow']|default([]) }}"
+        spine_gw_device: "{{ groups['mx']|default([]) }}"
+        leaf1_device: "{{ groups['qfx'][0]|default([]) }}"
+        leaf2_device: "{{ groups['qfx'][1]|default([]) }}"
+        igw_host: "{{ groups['igw']|default([]) }}"
+  tags:
+    - cafx

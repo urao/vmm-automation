@@ -1,0 +1,25 @@
+---
+#
+#
+
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: Install epel-release package
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install required yum packages
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ network_pkgs }}"
+
+  #- name: Upgrade pip version to the latest
+  #command: pip install --upgrade pip 
+  #ignore_errors: true
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

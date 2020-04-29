@@ -1,0 +1,21 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: "Create command_servers_yml configuration file"
+  template:
+    src: command_servers.yml.j2
+    dest: "{{ role_path }}/files/command_servers.yml"
+  delegate_to: localhost
+
+- name: "Create instance_yml configuration file"
+  template:
+    src: instances.yml.j2
+    dest: "{{ role_path }}/files/instances.yml"
+  delegate_to: localhost
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"
+

@@ -1,0 +1,18 @@
+#jinja2: lstrip_blocks: "True", trim_blocks: "True"
+{% for i in item.ports %}
+TYPE=Ethernet
+DEVICE=ens3f1
+NAME=ens3f1
+ONBOOT=yes
+BOOTPROTO=none
+IPV6INIT=no
+USERCTL=no
+IPADDR{{ loop.index - 1 }}={{ i.ipv4 }}
+NETMASK{{ loop.index - 1 }}={{ i.netmask }}
+{% if i.mtu is defined %}
+MTU{{ loop.index - 1 }}={{ i.mtu }}
+{% endif %}
+NM_CONTROLLED=no
+PEERDNS=no
+DEFROUTE=no
+{% endfor %}

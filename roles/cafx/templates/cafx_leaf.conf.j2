@@ -1,0 +1,95 @@
+{% set bgp_config_ns = namespace({
+    'unit_num'           : 80 + item.0
+ })                                                                 %}
+
+system {
+    root-authentication {
+        ssh-rsa "{{ laptop_user_ssh_key }}"
+    }
+    services {
+        ssh;
+        netconf {
+            ssh;
+            traceoptions {
+                file netconf-ops.log size 3m files 20 world-readable;
+                flag all;
+            }
+        }
+    }
+    ports {
+        console log-out-on-disconnect;
+    }
+}
+interfaces {
+{% for port in item.1.ports                %}
+{%    if  port.vlan  is defined and port.vlan | length        %}
+     {{ port.interface }} {
+        unit 0 {
+            family ethernet-switching {
+                interface-mode access
+                vlan {
+                    members ctrl_data
+                }
+            }
+        }
+    }
+    irb {
+        unit {{ bgp_config_ns.unit_num }} {
+            family inet {
+                address {{ port.irb }}
+            }                           
+        }
+    }
+{% else   %} 
+    {{ port.interface }} {
+        unit 0 {
+            family inet {
+                address {{ port.ipv4 }}
+            }
+        }
+    }
+{%    endif                                %}
+{%  endfor                                %}{# /* interfaces */ #}
+}
+vlans {
+    ctrl_data {
+        vlan-id {{ bgp_config_ns.unit_num }} 
+        l3-interface irb.{{ bgp_config_ns.unit_num }} 
+    }
+}
+protocols {
+    bgp {
+        group underlay {
+            type external;
+            export export-direct;
+            multipath;
+            local-as {{ item.1.underlay.asn }};
+{% for peer in item.1.underlay.peers                %}
+            neighbor {{ peer.address }} {
+                peer-as {{ peer.asn }}
+            }
+{%  endfor                                %}{# /* peers */ #}
+        }
+        traceoptions {
+            file ubgp.log;
+            flag all;
+        }
+    }
+    lldp {
+        interface all;
+    }
+    lldp-med {
+        interface all;
+    }
+    igmp-snooping {
+        vlan default;
+    }
+}
+policy-options {
+    policy-statement export-direct {
+        term loopback_intf {
+            from protocol direct;
+            then accept;
+        }
+    }
+}

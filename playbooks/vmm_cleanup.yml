@@ -1,0 +1,17 @@
+---
+# This playbook cleans up specific topology in VMM environment
+# 
+- name: Cleanup {{ lookup('env', 'VMM_TOPO_TYPE') | default('demo', true) }} VMM topology
+  hosts: pod
+  gather_facts: yes
+  pre_tasks:
+    - name: Set configuration directory in VMM
+      set_fact:
+        vmm_topo_type: "{{ lookup('env','VMM_TOPO_TYPE') | default('demo', true) }}"
+        vmm_folder: "{{ vmm.config_dir }}/{{ vmm_topology_type }}"
+  roles:
+    - role: cleanup
+  vars_files:
+    - "{{ hostvars['localhost'].config_file }}"
+  tags:
+    - vmm_cleanup

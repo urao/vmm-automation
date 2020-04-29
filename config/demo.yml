@@ -1,0 +1,61 @@
+---
+vmm:
+   topology_name: demo-lab
+   topology_type: demo
+   images: 
+      centos: "/vmm/data/user_disks/urao/CentOS-7.6-1905-8G.qcow2"
+      vmx_re: "/vmm/data/user_disks/urao/junos-vmx-x86-64-19.4R1.10.vmdk"
+      vmx_pfe: "/vmm/data/user_disks/urao/vFPC-20191114.img"
+      vqfx_re: "/vmm/data/user_disks/urao/jinstall-vqfx-10-f-19.4R1.10.vmdk"
+      vqfx_cosim: "/vmm/data/user_disks/urao/vqfx-19.4R1-2019010209-pfe-qemu.vmdk"
+      vsrx: "/vmm/data/user_disks/urao/junos-vsrx3-x86-64.vmdk"
+   config_dir: "vmm-ansible"
+   config_filename: "demo_vmm.conf"
+   role: demo
+instances:
+  vMXs:
+    - hostname: vMX1
+      type: device
+      os: junos
+      ports:
+        - type : "GE"
+          interface : "ge-0/0/0"
+          bridge: brvm1
+          ipv4: 10.1.1.20/24
+        - type: "GE"
+          interface : "ge-0/0/1"
+          bridge: brvm2
+          ipv4: 20.1.1.20/24
+  VMs:
+    - hostname: VM1
+      type: linux
+      os: centos
+      spec:
+         cpu: 1
+         ram: 2048
+      ports:
+        - name: ens3f1
+          bridge: brvm1
+          ipv4: 10.1.1.10
+          mtu: 1500
+          netmask: 255.255.255.0
+      routes:
+        - network: 20.1.1.0
+          netmask: 255.255.255.0
+          gateway: 10.1.1.20
+    - hostname: VM2
+      type: linux
+      os: centos
+      spec:
+         cpu: 1
+         ram: 2048
+      ports:
+        - name: ens3f1
+          bridge: brvm2
+          ipv4: 20.1.1.10
+          mtu: 1500
+          netmask: 255.255.255.0
+      routes:
+        - network: 10.1.1.0
+          netmask: 255.255.255.0
+          gateway: 20.1.1.20

@@ -1,0 +1,49 @@
+system {
+    root-authentication {
+        ssh-rsa "{{ laptop_user_ssh_key }}"
+    }
+}
+interfaces {
+{% for port in item.1.ports                %}
+    {{ port.interface }} {
+        unit 0 {
+            family inet {
+                address {{ port.ipv4 }}
+            }
+        }
+    }
+{%  endfor                                %}{# /* interfaces */ #}
+}
+protocols {
+    bgp {
+        group underlay {
+            type external;
+            export export-direct;
+            multipath;
+            local-as {{ item.1.underlay.asn }};
+{% for peer in item.1.underlay.peers                %}
+            neighbor {{ peer.address }} {
+                peer-as {{ peer.asn }}
+            }
+{%  endfor                                %}{# /* peers */ #}
+        }
+        traceoptions {
+            file ubgp.log;
+            flag all;
+        }
+    }
+    lldp {
+        interface all;
+    }
+    lldp-med {
+        interface all;
+    }
+}
+policy-options {
+    policy-statement export-direct {
+        term loopback_intf {
+            from protocol direct;
+            then accept;
+        }
+    }
+}

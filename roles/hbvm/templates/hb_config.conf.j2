@@ -1,0 +1,67 @@
+#include "/vmm/bin/common.defs"
+#include "/vmm/data/user_disks/vmxc/common.vmx.p3.defs"
+
+#define VMX_DISK0 basedisk "{{ vmm.images.vmx_re | default('/vmm/data/user_disks/urao/junos-vmx-x86-64-19.4R1.10.vmdk',true)}}";
+#define VMX_DISK1 basedisk "{{ vmm.images.vmx_pfe | default('/vmm/data/user_disks/urao/vFPC-20191114.img', true) }}";
+#define CENTOSDISK basedisk "{{ vmm.images.centos | default('/vmm/data/user_disks/urao/CentOS-7.6-1905-8G.qcow2', true) }}";
+
+config "{{ vmm.topology_name | default('topo1', true) }}" {
+
+{% if instances.vMXs is defined                            %}
+#undef VMX_CHASSIS_I2CID
+#undef VMX_CHASSIS_NAME
+#define VMX_CHASSIS_I2CID 21
+{% for vmx in instances.vMXs                               %}
+  VMX_CHASSIS_START()
+  #define VMX_CHASSIS_NAME {{ vmx.hostname }}
+  VMX_CHASSIS_START()
+    VMX_RE_START({{ vmx.hostname }}, 0)
+      VMX_RE_INSTANCE({{ vmx.hostname }}, VMX_DISK0, VMX_RE_I2CID, 0)
+      SSH_KEY_INSTALL
+      install "ENV(HOME)/{{ vmm_folder }}/device_default_config" "/root/olive.conf";
+    VMX_RE_END
+    VMX_MPC_START({{ vmx.hostname }}_MPC, 0)
+      VMX_MPC_INSTANCE({{ vmx.hostname }}_MPC, VMX_DISK1, VMX_MPC_I2CID, 0)
+{%   for port in vmx.ports                                      %}
+{%   set port_id =  port.interface | list             %}
+      VMX_CONNECT(GE({{ port_id[3] }},{{ port_id[5] }},{{ port_id[7] }}), {{ port.bridge }})
+{%   endfor                                                                 %}
+    VMX_MPC_END
+  VMX_CHASSIS_END
+{% endfor                                                                   %}
+{% endif                                                                    %}
+
+
+{% for vm in instances.VMs                                                  %}
+  vm "{{ vm.hostname }}" {
+      hostname "{{ vm.hostname }}";
+      CENTOSDISK
+      SSH_KEY_INSTALL
+      ncpus {{ vm.spec.cpu | default(1, true) }};
+      memory {{ vm.spec.ram | default(2048, true) }};
+      install "ENV(HOME)/{{ vmm_folder }}/linux_authorized_keys" "/root/.ssh/authorized_keys";
+      interface "em0" { bridge "external"; };
+{%   if  vm.ports is defined                                     %}
+      install "ENV(HOME)/{{ vmm_folder }}/{{ vm.hostname }}-ifcfg" "/etc/sysconfig/network-scripts/ifcfg-ens3f1";
+{% endif %}
+{%   if  vm.routes is defined                                     %}
+      install "ENV(HOME)/{{ vmm_folder }}/{{ vm.hostname }}-route" "/etc/sysconfig/network-scripts/route-ens3f1";
+{% endif %}
+{%   if  vm.ports is defined                                     %}
+{%   for port in vm.ports                                      %}
+      interface "em1" { bridge "{{ port.bridge }}"; };
+{%   endfor                                                                 %}
+{% endif %}
+  };
+{% endfor                                                                   %}
+
+
+{% if instances.vMXs.ports is defined                              %}
+   bridge "brvm1" {};
+   bridge "brvm2" {};
+{% endif %}
+   bridge "reserved_bridge" {};
+
+// The system needs these lines. DO NOT CHANGE
+PRIVATE_BRIDGES
+};

@@ -1,0 +1,154 @@
+---
+# file: tasks/deploy_contrail
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- assert:
+    that:
+      - cc_user is defined
+
+- name: "Check the current user folder"
+  getent:
+    database: passwd
+    key: "{{ cc_user }}"
+    split: ":"
+  register: getent_res
+
+- debug:
+    var: getent_res
+
+- set_fact:
+    cc_dir_name: "{{ getent_passwd['root'][4] }}/{{ cc_config_dir }}"
+
+- name: "Create {{ cc_config_dir }} if does not exists"
+  stat:
+    path: "{{ cc_dir_name }}"
+  register: cc_dir_res
+
+- name: "Create {{ cc_config_dir }} if does not exists"
+  file:
+    path: "{{ cc_dir_name }}"
+    state: directory
+    mode: 0755
+  when: not cc_dir_res.stat.exists
+
+- name: "Copy yaml files to cc_dir"
+  copy:
+    src: "{{ role_path }}/files/{{ item }}"
+    dest: "{{ cc_dir_name }}"
+  with_items:
+    - command_servers.yml
+    - instances.yml
+
+- name: "Log into docker registry"
+  shell: docker login "{{ contrail.registry }}" --username "{{ contrail.registry_username }}" --password "{{ contrail.registry_password }}"
+
+- set_fact:
+    cc_container_name: "contrail-command-deployer:{{ contrail.release_tag }}"
+
+- name: "Pull CC contrail image from registry"
+  shell: docker pull "{{ contrail.registry }}/{{ cc_container_name }}"
+
+- name: "Clean appformix packages "
+  shell: >
+    rm -rf /opt/software/appformix/* && rm -rf /opt/software/xflow/*
+  when: clean_command_flag|default(false)|bool == true
+  
+- name: "Create appformix controller related folder and copy files when flag is enabled"
+  block:
+    - name: "Create appformix controller folder if it does not exists"
+      file:
+        path: "{{ appformix.ctrl_file_location }}"
+        state: directory
+        mode: 0755
+
+    - name: "List all the files present in appformix folder"
+      shell: (cd "{{ images.afx_ctrl_location }}"; find . -maxdepth 1 -type f) | cut -d'/' -f2
+      register: files_to_copy
+      delegate_to: "{{ groups['pod'][0] }}"
+
+    - name: "Print list of afx images"
+      debug:
+        var: files_to_copy
+
+    - name: "Sync push appformix packages from VMM server on command VM"
+      synchronize:
+        src: "{{ images.afx_ctrl_location }}/{{ item }}"
+        dest: "{{ appformix.ctrl_file_location }}"
+        mode: push
+      with_items: "{{ files_to_copy.stdout_lines }}"
+      delegate_to: "{{ groups['pod'][0] }}"
+  when: enable_afx_controller | bool
+
+- name: "Create appformix flow related folder and copy files when flag is enabled"
+  block:
+    - name: "Create appformix flow folder if it does not exists"
+      file:
+        path: "{{ appformix.xflow_file_location }}"
+        state: directory
+        mode: 0755
+
+    - name: "List all the files present in afx flow folder"
+      shell: (cd "{{ images.afx_xflow_location }}"; find . -maxdepth 1 -type f) | cut -d'/' -f2
+      register: files_to_copy
+      delegate_to: "{{ groups['pod'][0] }}"
+
+    - name: "Print list of afx flow images"
+      debug:
+        var: files_to_copy
+
+    - name: "Sync push appformix flow packages from VMM server on command VM"
+      synchronize:
+        src: "{{ images.afx_xflow_location }}/{{ item }}"
+        dest: "{{ appformix.xflow_file_location }}"
+        mode: push
+      with_items: "{{ files_to_copy.stdout_lines }}"
+      delegate_to: "{{ groups['pod'][0] }}"
+
+    - name: "Stop dummyvip VM in pod, so its ipaddress can be used as vip"
+      command: "vmm stop dummyvip"
+      delegate_to: "{{ groups['pod'][0] }}"
+  when: enable_afx_flow | bool
+
+# remove existing command containers if exists
+- name: "Uninstall contrail and remove all contrail-command"
+  shell: >
+    docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)
+  when: clean_command_flag|default(false)|bool == true
+
+- name: "Uninstall appformix controller containers"
+  shell: >
+    docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)
+  when: clean_command_flag|default(false)|bool == true
+  delegate_to: "{{ groups['afxc'][0] }}"
+
+- name: "Start contrail-command-deployer"
+  shell: >
+    docker run -t --net host -e action=provision_cluster -e orchestrator=openstack
+    -v "{{ cc_dir_name }}/command_servers.yml:/command_servers.yml"
+    -v "{{ cc_dir_name }}/instances.yml:/instances.yml"
+    -d --privileged --name contrail_command_deployer "{{ contrail.registry }}/{{ cc_container_name }}"
+
+- name: Wait till contrail command get deployed
+  pause: 
+    minutes: 15
+
+- name: "How to check the deployment progress...."
+  set_fact:
+    deployment_progress_tracking: "{{ deploy_msg }}"
+  vars:
+    deploy_msg: |
+      Track deployment progress, do the following on Contrail-Command VM:
+         1) ssh root@{{ command_host }} docker logs -f contrail_command_deployer
+         2) ssh root@{{ command_host }} tailf /var/log/contrail/deploy.log
+      Contrail Command UI:
+         1) Once deployment is done, you can access UI: https://{{ command_host }}:9091 
+         2) Credentials username: 'admin', password: c0ntrail123
+
+- name: "----Print deployment progress message:---"
+  debug:
+    msg: "{{ deployment_progress_tracking.split('\n') }}"
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

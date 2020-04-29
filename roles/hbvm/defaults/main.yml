@@ -1,0 +1,28 @@
+---
+# file: defaults/main
+# variable to be set for this role
+docker_centos_repo_url: "https://download.docker.com/linux/centos/docker-ce.repo"
+
+# HB GUI credentials
+hb_ui_username: "admin"
+hb_ui_password: "__fill__in"
+
+hb_version: 2.1
+hb_pkg_name: "healthbot-{{ hb_version }}-0.1.noarch.rpm"
+hb_cert_folder: "/var/local/healthbot/certs"
+
+hb_cert_keys:
+  - "key.pem"
+  - "cert.pem"
+
+hb_pkgs:
+  - yum-utils
+  - device-mapper-persistent-data
+  - lvm2
+
+docker_pkgs:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+
+hb_pkg_location: "{{ images.location }}{{ vmm_user }}/{{ hb_pkg_name }}"

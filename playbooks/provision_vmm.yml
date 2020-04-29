@@ -1,0 +1,31 @@
+---
+# This playbook creates pod inventory, generates topology specific
+# vmm configuration files and deploys in VMM environment
+
+- name: Prework - create VMM configuration and POD inventory
+  hosts: 127.0.0.1
+  any_errors_fatal: true
+  gather_facts: no
+  pre_tasks:
+    - name: Create pod inventory file
+      template:
+        src: "../config/pod_inventory.j2"
+        dest: "../inventory/pod"
+      run_once: true
+  roles:
+    - { role: "{{ lookup('env','VMM_TOPO_TYPE') }}", operation: generate_vmm_cfg }
+  vars_files:
+    - "{{ config_file }}"
+  tags:
+    - vmm_preflight
+
+- name: Copy {{ lookup('env','VMM_TOPO_TYPE') }} VMM topology files and create inventory
+  hosts: pod
+  any_errors_fatal: true
+  gather_facts: yes
+  roles:
+    - role: vmm
+  vars_files:
+    - "{{ hostvars['localhost'].config_file }}"
+  tags:
+    - vmm

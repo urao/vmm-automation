@@ -1,0 +1,22 @@
+[all]
+{% for key, value in inventory_list.iteritems() %}
+{{ value }}
+{% endfor %}
+
+[mx]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('vMX')  %}
+{{ value }} 
+{% endif %}
+{% endfor %}
+
+[computes]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('VM')  %}
+{{ value }} 
+{% endif %}
+{% endfor %}
+
+[computes:vars]
+ansible_ssh_user={{ linux.username }}
+ansible_ssh_password={{ linux.password }}

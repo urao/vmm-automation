@@ -1,0 +1,123 @@
+global_configuration:
+  CONTAINER_REGISTRY: {{ contrail.registry }}
+  REGISTRY_PRIVATE_INSECURE: false
+  CONTAINER_REGISTRY_USERNAME: {{ contrail.registry_username }}
+  CONTAINER_REGISTRY_PASSWORD: {{ contrail.registry_password }}
+provider_config:
+  bms:
+    ssh_user: root
+{%     for server in ntp.server_ips                          %}
+    ntpserver: {{ server }}
+{%     endfor                                                %}
+    domainsuffix: englab.juniper.net
+    ssh_public_key: /root/.ssh/id_rsa.pub
+    ssh_private_key: /root/.ssh/id_rsa
+instances:
+{%     for server in groups['controllers']                          %}
+  controller:
+    ip: {{ server }}
+    provider: bms
+    roles:
+      config:
+      config_database:
+      control:
+      webui:
+      analytics:
+      analytics_database:
+      openstack_control:
+      openstack_network:
+      openstack_storage:
+      openstack_monitoring:
+{%  if enable_afx_controller is defined and enable_afx_controller is sameas true        %}
+      appformix_openstack_controller:
+      appformix_bare_host:
+{%  endif                                                                     %}
+{%     endfor                                                %}
+{%  if enable_afx_controller is defined and enable_afx_controller is sameas true        %}
+{%     for server in groups['afxc']                          %}
+  appformixc:
+    ip: {{ server }}
+    provider: bms
+    roles:
+      appformix_controller:
+      appformix_bare_host:
+{%     endfor                                                %}
+{%  endif                                                                     %}
+{%  if enable_afx_flow is defined and enable_afx_flow is sameas true        %}
+{%     for server in groups['afxf']                          %}
+  appformixf:
+    ip: {{ server }}
+    provider: bms
+    roles:
+      appformix_flows:
+      appformix_bare_host:
+{%     endfor                                                %}
+{%  endif                                                                     %}
+{%     for server in groups['computes']                          %}
+  compute{{ loop.index }}:
+    ip: {{ server }}
+    provider: bms
+    roles:
+      vrouter:
+        VROUTER_GATEWAY: 172.16.8{{ loop.index - 1 }}.254
+        PHYSICAL_INTERFACE: ens3f1
+      openstack_compute:
+{%  if enable_afx_controller is defined and enable_afx_controller is sameas true        %}
+      appformix_compute:
+      appformix_bare_host:
+{%  endif                                                                     %}
+{%     endfor                                                %}
+contrail_configuration:
+  CONTRAIL_VERSION: {{ contrail.release_tag }}
+  CONTRAIL_CONTAINER_TAG: {{ contrail.release_tag }}
+  CLOUD_ORCHESTRATOR: openstack
+  CONFIG_NODEMGR__DEFAULTS__minimum_diskGB: 2
+  DATABASE_NODEMGR__DEFAULTS__minimum_diskGB: 2
+  CONFIG_DATABASE_NODEMGR__DEFAULTS__minimum_diskGB: 2
+  METADATA_PROXY_SECRET: contrail123
+  JVM_EXTRA_OPTS: "-Xms1g -Xmx2g"
+  RABBITMQ_NODE_PORT: 5673
+  ENCAP_PRIORITY: VXLAN,MPLSoUDP,MPLSoGRE
+  OPENSTACK_VERSION: {{ openstack.release_tag }}
+  AUTH_MODE: keystone
+  KEYSTONE_AUTH_URL_VERSION: /v3
+  PHYSICAL_INTERFACE: ens3f1
+{%     for server in groups['controllers']                          %}
+  CONTROLLER_NODES: {{ server }}
+  OPENSTACK_NODES: {{ server }}
+{%     endfor                                                %}
+{%   for port in instances.VMs[0].ports                        %}
+  CONTROL_NODES: {{ port.ipv4 }}
+{%     endfor                                                %}
+  #TSN_NODES: 172.16.80.3
+  UPGRADE_KERNEL: true
+  AAA_MODE: {{ contrail.auth_mode }}
+kolla_config:
+  kolla_globals:
+    openstack_release: {{ openstack.release_tag }}
+    enable_barbican: no
+    enable_haproxy: no
+    enable_ironic: no
+    enable_swift: no
+  kolla_passwords:
+    keystone_admin_password: {{ openstack.admin_password }}
+  customize:
+    nova.conf:  |
+      [libvirt]
+      virt_type=qemu
+      cpu_mode=none
+{%  if enable_afx_controller is defined and enable_afx_controller is sameas true        %}
+appformix_configuration:
+  appformix_license:  {{ appformix.license_file }}
+  appformix_kvm_instance_discovery: true
+  network_device_discovery_enabled: true
+{%  endif                                                                     %}
+{%  if enable_afx_flow is defined and enable_afx_flow is sameas true        %}
+xflow_configuration:
+  clickhouse_retention_period_secs:  {{ appformix.xflow_retention_period }}
+  loadbalancer_collector_vip: {{ appformix.xflow_inband_collector_vip }}
+  telemetry_in_band_cidr: {{ appformix.xflow_inband_cidr }}
+  loadbalancer_management_vip: {{ groups['dummyvip'][0] }}
+  telemetry_in_band_interface_name: {{ appformix.xflow_inband_intf }}
+  telemetry_in_band_collector_ip: {{ instances.VMs[3].ports[0].ipv4 }}
+{%  endif                                                                     %}

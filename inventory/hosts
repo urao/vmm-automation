@@ -1,0 +1,9 @@
+localhost:
+  hosts:
+    localhost:
+      config_file: ../config/{{ lookup('env','VMM_TOPO_TYPE') }}.yml
+      connection: local
+      ansible_connection: local
+      python_interpreter: python
+      ansible_python_interpreter: python
+

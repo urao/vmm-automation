@@ -1,0 +1,183 @@
+---
+# file: tasks/install
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: "Get enforce"
+  command:
+    cmd: /usr/sbin/getenforce
+  register: getenforce_res
+
+- name: "Set enforce to zero"
+  command:
+    cmd: /usr/sbin/setenforce 0
+  when:
+    - getenforce_res.stdout != "Disabled"
+
+- name: "Install healthbot required packages"
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ hb_pkgs }}"
+
+- name: "Add docker repo"
+  get_url:
+    url: "{{ docker_centos_repo_url }}"
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: 0644
+
+- name: "Install docker packages"
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ docker_pkgs }}"
+
+- name: "Start docker service"
+  service:
+    name: docker
+    state: started
+
+- name: "Enable docker service"
+  service:
+    name: docker
+    enabled: yes
+
+- name: "Copy the healthbot configuration file"
+  template:
+    src: healthbot.conf.j2
+    dest: "/tmp/healthbot.conf"
+
+- name: "Check if the configuration file exists"
+  stat:
+    path: /tmp/healthbot.conf
+  register: hb_cfg_file_res
+
+- debug:
+    msg: "HB RPM pkg location {{ hb_pkg_location }}"
+
+- name: "Check if the healthbot RPM file exists"
+  stat:
+    path: /tmp/{{ hb_pkg_name }}
+  register: hb_pkg_res
+
+- name: "Sync push healthbot RPM from VMM server on HB VM"
+  synchronize:
+    src: "{{ hb_pkg_location }}"
+    dest: /tmp/{{ hb_pkg_name }}
+    mode: push
+  delegate_to: "{{ groups['pod'][0] }}"
+  when: hb_pkg_res.stat.exists == False
+
+- debug:
+    msg: "HB pkg name {{ hb_pkg_name }}"
+
+- name: "Check if healthbot package {{ hb_pkg_name }} is installed"
+  yum:
+    list: healthbot
+  register: hb_is_installed
+
+- debug:
+    var: hb_is_installed
+
+- name: "Check if healthbot is installed"
+  shell:
+    cmd: "command -v healthbot >/dev/null 2>&1"
+  register: is_hb_exist
+  ignore_errors: yes
+
+- debug:
+    var: is_hb_exist
+
+- name: "Install healthbot RPM package"
+  yum:
+    name: "/tmp/{{ hb_pkg_name }}"
+    state: present
+    update_cache: yes
+  when:
+    - hb_is_installed.results | selectattr("yumstate", "match", "installed") | list | length == 0
+    - hb_pkg_res.stat.exists
+    - is_hb_exist.rc == 1
+
+# pause for 60seconds
+- pause:
+    seconds: 60
+
+- name: "Check if healthbot package {{ hb_pkg_name }} is installed"
+  yum:
+    list: healthbot
+  register: hb_is_installed
+
+- debug:
+    var: hb_is_installed
+
+- debug:
+    var: hb_cfg_file_res
+
+- name: "Check {{ hb_cert_folder }} exists"
+  stat:
+    path: "{{ hb_cert_folder }}"
+  register: hb_cert_folder_res
+
+- name: "Create {{ hb_cert_folder }} if not exists"
+  file:
+    path: "{{ hb_cert_folder }}"
+    state: directory
+    mode: 0755
+    group: root
+    owner: root
+  when: hb_cert_folder_res.stat.exists == false
+
+- name: "Create self-signed SSL cert"
+  shell: |
+    openssl req -new -nodes -x509 -days 36525 \
+    -subj "/C=US/ST=Ca/L=Svl/O=Juniper Networks/OU=Org/CN={{ inventory_hostname }}" \
+    -keyout {{ hb_cert_folder }}/key.pem \
+    -out {{ hb_cert_folder }}/cert.pem
+  args:
+    creates: "{{ hb_cert_folder }}/{{ item }}"
+  with_items: "{{ hb_cert_keys }}"
+
+- name: "Check if healthbot is installed"
+  shell:
+    cmd: "command -v healthbot >/dev/null 2>&1"
+  register: is_hb_exist
+  ignore_errors: yes
+
+- debug:
+    var: is_hb_exist
+
+- name: "Setup healthbot"
+  shell:
+    cmd: "healthbot setup -c /tmp/healthbot.conf"
+  when:
+    - hb_cfg_file_res.stat.exists
+    - is_hb_exist.rc == 0
+
+- name: Wait for 60 seconds
+  pause:
+    seconds: 60
+
+- name: "Check healthbot status"
+  command: "healthbot status"
+  ignore_errors: yes
+  register: hb_status_res
+
+- name: "Start healthbot services"
+  command: "healthbot start"
+  when:
+    - hb_status_res.rc == 1
+
+# pause for 60seconds
+- name: Wait for 60 seconds
+  pause:
+    seconds: 60
+
+- name: "Finished healthbot installation"
+  debug:
+    msg: "Installation Done!!!"
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

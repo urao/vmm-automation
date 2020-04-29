@@ -1,0 +1,20 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- include_tasks: generate_vmm_cfg.yml
+  when: operation == "generate_vmm_cfg"
+
+- include_tasks: copy_configs_vmm.yml
+  when: operation == "copy_configs_vmm"
+
+- include_tasks: generate_device_config.yml
+  when: operation == "generate_device_config"
+
+- include_tasks: commit_device_config.yml
+  when: operation == "commit_device_config"
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

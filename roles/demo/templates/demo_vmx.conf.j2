@@ -1,0 +1,16 @@
+system {
+    root-authentication {
+     ssh-rsa  "{{ laptop_user_ssh_key }}"
+    }
+}
+interfaces {
+{% for port in item.ports  %}
+     {{ port.interface }} {
+        unit 0 {
+            family inet {
+                address {{ port.ipv4 }}
+            }
+        }
+    }
+{%  endfor                 %}
+}

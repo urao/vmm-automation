@@ -1,0 +1,6 @@
+---
+- name: Install required packages, start services on the linux nodes 
+  hosts: all
+  gather_facts: yes
+  roles:
+    - common

@@ -1,0 +1,156 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: Wait 60 seconds, for target connection to become reachable/usable
+  wait_for_connection:
+    delay: 10
+    timeout: 60
+
+- name: Print debug information
+  debug:
+    msg: "{{ inventory_hostname }}"
+
+- name: Create vmm_config directory if does not exists
+  file:
+    path: "{{ vmm_folder }}"
+    state: directory
+    mode: 0755
+
+- name: Templatize authorized keys and device_default config files
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { src: 'device_default_conf.j2', dest: '{{ role_path }}/files/device_default_config' }
+    - { src: 'linux_authorized_keys.j2', dest: '{{ role_path }}/files/linux_authorized_keys' }
+  delegate_to: localhost
+
+- name: Copy authorized keys file into config folder
+  copy:
+    src: linux_authorized_keys
+    dest: "{{ vmm_folder }}"
+
+- name: Copy device init configuration file into config folder
+  copy:
+    src: device_default_config
+    dest: "{{ vmm_folder }}"
+
+- name: Copy {{ vmm_topo_type }} topology files into config folder
+  include_role:
+    name: "{{ vmm_topo_type }}"
+    tasks_from: copy_configs_vmm
+
+- name: Re-create when vmm_recreate_flag is enabled
+  block:
+    - name: Run vmm stop command before running vmm config cmd
+      shell:
+        cmd: "vmm stop"
+      ignore_errors: true
+    
+    - name: Run vmm unbind command before running vmm config cmd
+      shell:
+        cmd: "vmm unbind"
+      ignore_errors: true
+    
+    - debug:
+        msg: "Wait for 60 seconds before creating new instances"
+    
+    - name: Wait for 60 seconds
+      pause:
+        seconds: 60
+    
+    # TODO check vmm capacity if its enough before you create topology
+    
+    - name: Run vmm config command
+      shell:
+        cmd: "vmm config {{ vmm_folder }}/{{ vmm.config_filename }} -g vmm-default"
+      register: vmm_config_res
+    
+    - name: Run vmm bind command
+      shell:
+        cmd: "vmm bind"
+      register: vmm_bind_res
+    
+    - name: Run vmm ls command
+      shell:
+        cmd: "vmm ls"
+      register: vmm_ls_res
+    
+    - name: Run vmm start command
+      shell:
+        cmd: "vmm start"
+      register: vmm_start_res
+    
+    - name: Set VMM boot time based on the topology in seconds
+      vars:
+        vmm_bootime:
+          demo:  600
+          k8s:  360
+          hbvm:  240
+          cafx:  1600
+          default: 600
+      set_fact:
+        vmm_wait_time: "{{ item.value }}"
+      loop: "{{ lookup('dict', vmm_bootime) }}"
+      when: "'{{ vmm_topo_type }}' in item.key"
+    
+    - debug: msg="Wait for "{{ vmm_wait_time }}" seconds for instances to come up"
+    
+    - name: Wait for "{{ vmm_wait_time }}" seconds for instances to come up
+      pause:
+        seconds: "{{ vmm_wait_time }}"
+  when: vmm_recreate_flag|default(true)|bool == true
+
+- name: Wait until "vmm ping" command output has "alive" before continuing
+  shell:
+    cmd: "vmm ping"
+  register: vmm_ping_res
+  retries: 5
+  until: vmm_ping_res.stdout_lines | reject('search', 'alive') | list | count == 0
+
+- name: Run "vmm ip" command to collect instance name
+  shell:
+    cmd: "vmm ip | grep -v fpc | grep -v cosim | grep -v MPC | awk '{print $1}'"
+  register: vmm_inv_name
+
+- set_fact:
+    inventory_names: "{{ vmm_inv_name.stdout.split('\n') | default([]) }}"
+
+- debug: var=inventory_names
+
+- name: Run "vmm ip" command to collect instance IP address
+  shell:
+    cmd: "vmm ip | grep -v fpc | grep -v cosim | grep -v MPC | awk '{print $2}'"
+  register: vmm_inv_ips
+
+- set_fact:
+    inventory_ipaddress: "{{ vmm_inv_ips.stdout.split('\n') | default([]) }}"
+
+- debug: 
+    var: inventory_ipaddress
+
+- set_fact:
+    inventory_list: "{{ dict(inventory_names | zip(inventory_ipaddress)) }}"
+
+- debug: 
+    var: inventory_list
+
+- name: Check if inventory list is empty if so assert it
+  assert:
+    that:
+      - inventory_list is defined
+      - inventory_list.keys()|length > 0
+    msg: VMM inventory list is empty
+
+- name: Create {{ vmm_topo_type }} vmm inventory
+  template:
+    src: "{{ vmm_topo_type }}_inventory.inv.j2"
+    dest: "../inventory/{{ vmm_topo_type }}"
+    force: yes
+  delegate_to: localhost
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

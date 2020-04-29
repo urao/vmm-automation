@@ -1,0 +1,55 @@
+---
+#
+#
+
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: Set time zone
+  timezone:
+    name: "{{ ntp.timezone }}"
+
+- name: Configure ntp
+  template:
+    src: ntp.conf.j2
+    dest: /etc/ntp.conf
+  notify:
+    - stop ntpd
+    - restart ntpd
+
+- name: Configure ntpdate
+  template:
+    src: ntpdate.conf.j2
+    dest: /etc/sysconfig/ntpdate
+    mode: 0644
+  notify:
+    - restart ntpd
+
+- name: Iptables flush all filters
+  iptables:
+    chain: "{{ item }}"
+    flush: yes
+  with_items: [ 'FORWARD', 'OUTPUT', 'INPUT']
+
+- name: Set the policy for the chains to ACCEPT
+  iptables:
+    chain: "{{ item }}"
+    policy: ACCEPT
+  with_items: [ 'FORWARD', 'OUTPUT', 'INPUT']
+  register: policy_changed
+
+- name: Save iptables
+  command: iptables-save
+  when: policy_changed|changed
+
+- name: Enabling time display in history
+  blockinfile:
+    path: /etc/profile
+    insertafter: EOF
+    block: |
+      export HISTTIMEFORMAT=" %d/%m/%y %T "
+
+- meta: flush_handlers
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

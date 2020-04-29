@@ -1,0 +1,64 @@
+---
+#This playbook deploys contrail+appformix using command
+
+- import_playbook: cafx_facts.yml
+
+- name: Wait for all the linux nodes become available
+  hosts: all:!mx:!qfx
+  any_errors_fatal: true
+  gather_facts: yes
+  tasks:
+    - name: Wait for systems to be available
+      wait_for_connection:
+  
+    - name: Print debug information
+      debug:
+        msg: "{{ command_host }}"
+  tags:
+    - cafx
+
+- name: Install required packages, start services on the linux nodes
+  hosts: all:!mx:!qfx:!pod
+  any_errors_fatal: true
+  gather_facts: yes
+  roles:
+    - common
+  tags:
+    - cafx,common
+
+- name: Generate underlay device configuration for {{ lookup('env','VMM_TOPO_TYPE') }} VMM topology
+  hosts: localhost
+  any_errors_fatal: true
+  gather_facts: no
+  roles:
+    - { role: cafx, operation: generate_device_config }
+  vars_files:
+    - "../config/{{ lookup('env','VMM_TOPO_TYPE') }}.yml"
+  tags:
+    - cafx,device
+
+- name: Commit underlay device configuration for {{ lookup('env','VMM_TOPO_TYPE') }} VMM topology
+  hosts: localhost
+  any_errors_fatal: true
+  gather_facts: no
+  roles:
+    - { role: cafx, operation: commit_device_config }
+  vars_files:
+    - "../config/{{ lookup('env','VMM_TOPO_TYPE') }}.yml"
+  tags:
+    - cafx,device
+
+# TODO
+# Check Underlay BGP summary
+# Check connectivity between all the VMS from contrail controller host vm
+- name: Configure command VM and generate required yml files and deploy contrail
+  hosts: "{{ groups['command'] }}"
+  any_errors_fatal: true
+  gather_facts: yes
+  vars_files:
+    - "../config/{{ lookup('env','VMM_TOPO_TYPE') }}.yml"
+  roles:
+    - { role: command, operation: install_cc_pkgs }
+    - { role: command, operation: generate_cc_cfg }
+    - { role: command, operation: deploy_contrail }
+  tags: cafx,command

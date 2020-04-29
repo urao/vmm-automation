@@ -1,0 +1,22 @@
+system {
+    root-authentication {
+        ssh-rsa "{{ vmm_user_ssh_key }}"
+    }
+    services {
+        netconf {
+            ssh;
+	    traceoptions {
+                file netconf-ops.log size 3m files 20 world-readable;
+                flag all;
+            }
+        }
+    }
+}
+protocols {
+    lldp {
+        interface all;
+    }
+    lldp-med {
+        interface all;
+    }
+}

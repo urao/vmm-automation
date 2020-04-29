@@ -1,0 +1,88 @@
+[controllers]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('ccos')  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+
+[computes]
+{% for key, value in inventory_list.iteritems() %}
+{% if 'compute' in key  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+
+{%  if enable_afx_controller is defined and enable_afx_controller is sameas true        %}
+[afxc]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('afxc')  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{%  if enable_afx_flow is defined and enable_afx_flow is sameas true        %}
+[afxf]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('afxflow')  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+[igw]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('igw')  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+
+[command]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('ccommand')  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+
+[dummyvip]
+{% for key, value in inventory_list.iteritems() %}
+{% if 'dummyvip' in key  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+
+[mx]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('vMX')  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+
+[qfx]
+{% for key, value in inventory_list.iteritems() %}
+{% if key.startswith('vQFX')  %}
+{{ value }}
+{% endif %}
+{% endfor %}
+
+[pod]
+{{ lookup('env','VMM_POD_NAME') }}
+
+[pod:vars]
+ansible_ssh_user={{ lookup('env','VMM_USERNAME') }}
+
+[all_contrail:children]
+controllers
+computes
+
+[all_afx:children]
+afxc
+afxf
+
+[all_devices:children]
+mx
+qfx
+
+[all:vars]
+ansible_ssh_user={{ linux.username }}
+ansible_ssh_password={{ linux.password }}

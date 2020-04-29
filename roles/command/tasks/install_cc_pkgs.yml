@@ -1,0 +1,51 @@
+---
+# file: tasks/install_cc_pkgs
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: "Uninstall existing packages"
+  pip:
+    name: "{{ item }}"
+    state: absent
+  with_items: "{{ cc_uninstall_pkgs }}"
+
+- name: "Update all the existing packages"
+  yum:
+    name: "*"
+    state: latest
+
+- name: "Install required packages"
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ cc_pkgs }}"
+
+- name: "Add docker repo"
+  get_url:
+    url: "{{ docker_centos_repo_url }}"
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: 0644
+
+- name: "Install docker package"
+  package:
+    name: "{{ item }}"
+    state: installed
+    update_cache: yes
+  with_items:
+    - docker-ce-18.06.0.ce
+
+- name: "Start docker service"
+  service:
+    name: docker
+    state: started
+
+- name: "Enable docker service"
+  service:
+    name: docker
+    enabled: yes
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

@@ -1,0 +1,18 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- include_tasks: install_cc_pkgs.yml
+  when: operation == "install_cc_pkgs"
+
+- include_tasks: generate_cc_cfg.yml
+  when: operation == "generate_cc_cfg"
+
+- include_tasks: deploy_contrail.yml
+  when: operation == "deploy_contrail"
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"
+

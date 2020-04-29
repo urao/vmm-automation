@@ -1,0 +1,22 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: "Generate vQFX Leaf devices configuration file"
+  template:
+    src: cafx_leaf.conf.j2
+    dest: "{{ role_path }}/files/leaf_{{ groups['qfx'][item.0] }}.conf"
+  with_indexed_items:
+    - "{{ instances.vQFXs }}"
+
+- name: "Generate vMX gateway device configuration file"
+  template:
+    src: cafx_vmx.conf.j2
+    dest: "{{ role_path }}/files/vmx_{{ groups['mx'][item.0] }}.conf"
+  with_indexed_items:
+    - "{{ instances.vMXs }}"
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

@@ -1,0 +1,47 @@
+---
+vmm:
+   topology_name: k8s-lab
+   topology_type: k8s
+   images: 
+      centos: "/vmm/data/user_disks/urao/CentOS-7.6-1905-40G.qcow2"
+   config_dir: "vmm-ansible"
+   config_filename: "k8s_vmm.conf"
+   role: k8s
+instances:
+  VMs:
+    - hostname: k8s-master
+      type: linux
+      os: centos
+      spec:
+         cpu: 4
+         ram: 16248
+      ports:
+        - name: ens3f1
+          bridge: brvm
+          ipv4: 172.16.80.10
+          mtu: 1500
+          netmask: 255.255.255.0
+    - hostname: k8s-node1
+      type: linux
+      os: centos
+      spec:
+         cpu: 4
+         ram: 16248
+      ports:
+        - name: ens3f1
+          bridge: brvm
+          ipv4: 172.16.80.20
+          mtu: 1500
+          netmask: 255.255.255.0
+    - hostname: k8s-node2
+      type: linux
+      os: centos
+      spec:
+         cpu: 4
+         ram: 16248
+      ports:
+        - name: ens3f1
+          bridge: brvm
+          ipv4: 172.16.80.21
+          mtu: 1500
+          netmask: 255.255.255.0

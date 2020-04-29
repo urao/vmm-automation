@@ -1,0 +1,17 @@
+---
+vmm:
+   topology_name: hb-lab
+   topology_type: hbvm
+   images: 
+      centos: "/vmm/data/user_disks/urao/CentOS-7.6-1905-100G.qcow2"
+   config_dir: "vmm-ansible"
+   config_filename: "hb_vmm.conf"
+   role: hbvm
+instances:
+  VMs:
+    - hostname: hbvm
+      type: linux
+      os: centos
+      spec:
+         cpu: 4
+         ram: 16248

@@ -1,0 +1,63 @@
+---
+#
+#
+- debug:
+    msg: "START {{ role_path.split('/')[-1] }}"
+
+- name: Wait 60 seconds, for target connection to become reachable/usable
+  wait_for_connection:
+    delay: 30
+    timeout: 60
+
+- name: Run vmm stop command
+  shell:
+    cmd: "vmm stop"
+  ignore_errors: true
+
+- name: Run vmm unbind command
+  shell:
+    cmd: "vmm unbind"
+  ignore_errors: true
+
+- debug: msg="Wait for 30 seconds before going forward"
+- pause: seconds=30
+
+- name: Run vmm ls command
+  shell:
+    cmd: "vmm ls"
+  register: vmm_ls_res
+
+- name: Check vmm_config directory stats
+  stat:
+    path: "{{ vmm_folder }}"
+  register: dir_to_delete
+
+- name: Remove vmm_config directory {{ vmm_folder }}
+  file:
+    state: absent
+    path: "{{ vmm_folder }}"
+  when: dir_to_delete.stat.exists and dir_to_delete.stat.isdir
+
+- name: Remove vmm inventory for {{ vmm_topo_type }} topology
+  file:
+    path: "../inventory/{{ vmm_topo_type }}"
+    state: absent
+  delegate_to: localhost
+
+- name: List out all the files created for this {{ vmm_topo_type }} vmm topology
+  find:
+    paths: ../roles/{{ vmm_topo_type }}/files/
+  register: files_to_delete
+  delegate_to: localhost
+
+#- debug: var=files_to_delete
+
+- name: Delete out all the files created for this {{ vmm_topo_type }} vmm topology
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ files_to_delete.files }}"
+  delegate_to: localhost
+
+- debug:
+    msg: "END {{ role_path.split('/')[-1] }}"

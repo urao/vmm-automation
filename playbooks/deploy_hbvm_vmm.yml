@@ -1,0 +1,14 @@
+---
+- name: Install required packages, start services on the vm nodes
+  hosts: hbvm
+  any_errors_fatal: true
+  gather_facts: yes
+  roles:
+    - { role: common, when: ansible_distribution == "CentOS", tags: common }
+
+- name: Install Healthbot packages, start services on the VM 
+  hosts: hbvm
+  any_errors_fatal: true
+  gather_facts: yes
+  roles:
+    - { role: hbvm, operation: install, when: ansible_distribution == "CentOS", tags: hbvm }

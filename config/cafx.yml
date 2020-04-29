@@ -1,0 +1,190 @@
+---
+vmm:
+   topology_name: cafx-lab
+   topology_type: cafx
+   images:
+      centos_cntrl: "/vmm/data/user_disks/urao/CentOS-7.6-1905-100G.qcow2"
+      centos_compute: "/vmm/data/user_disks/urao/CentOS-7.6-1905-40G.qcow2"
+      centos_bms: "/vmm/data/user_disks/urao/CentOS-7.6-1905-8G.qcow2"
+      vmx_re: "/vmm/data/user_disks/urao/junos-vmx-x86-64-19.4R1.10.vmdk"
+      vmx_pfe: "/vmm/data/user_disks/urao/vFPC-20191114.img"
+      vqfx_re: "/vmm/data/user_disks/urao/jinstall-vqfx-10-f-19.4R1.10.vmdk"
+      vqfx_cosim: "/vmm/data/user_disks/urao/vqfx-19.4R1-2019010209-pfe-qemu.vmdk"
+      vsrx: "/vmm/data/user_disks/urao/junos-vsrx3-x86-64.vmdk"
+   config_dir: "vmm-ansible"
+   config_filename: "cafx_vmm.conf"
+instances:
+  vMXs:
+    - hostname: vMX1
+      type: device
+      os: junos
+      role: spine
+      ports:
+        - type : "GE"
+          interface : "ge-0/0/0"
+          bridge: vmx-leaf1
+          ipv4: 172.16.1.3/29
+        - type: "GE"
+          interface : "ge-0/0/1"
+          bridge: vmx-leaf2
+          ipv4: 172.16.2.3/29
+        - type: "GE"
+          interface : "ge-0/0/2"
+          bridge: vmx-igw
+          ipv4: 172.16.100.20/24
+      underlay:
+        type : external
+        asn : 65301
+        peers:
+          - address : 172.16.1.2
+            asn : 65201
+          - address : 172.16.2.2
+            asn : 65401
+  vQFXs:
+    - hostname: vQFX-Leaf1
+      type: device
+      os: junos
+      role: leaf1
+      ports:
+        - type : "XE"
+          vlan : "true"
+          interface : "xe-0/0/0"
+          bridge: leaf1-br
+          irb: "172.16.80.254/24"
+        - type: "XE"
+          interface : "xe-0/0/1"
+          bridge: vmx-leaf1
+          ipv4: 172.16.1.2/29
+      underlay:
+        type : external
+        asn : 65201
+        peers:
+          - address : 172.16.1.3
+            asn : 65301
+    - hostname: vQFX-Leaf2
+      type: device
+      os: junos
+      role: leaf2
+      ports:
+        - type : "XE"
+          vlan : "true"
+          interface : "xe-0/0/0"
+          bridge: leaf2-br
+          irb: 172.16.81.254/24
+        - type: "XE"
+          interface : "xe-0/0/1"
+          bridge: vmx-leaf2
+          ipv4: 172.16.2.2/29
+      underlay:
+        type : external
+        asn : 65401
+        peers:
+          - address : 172.16.2.3
+            asn : 65301
+  VMs:
+    - hostname: ccos
+      type: linux
+      os: centos
+      role: control
+      spec:
+         cpu: 4
+         ram: 32648
+      ports:
+        - name: ens3f1
+          bridge: leaf1-br
+          ipv4: 172.16.80.10
+          netmask: 255.255.255.0
+      routes:
+        - network: 172.16.81.0
+          netmask: 255.255.255.0
+          gateway: 172.16.80.254
+    - hostname: compute1
+      type: linux
+      os: centos
+      role: compute
+      spec:
+         cpu: 2
+         ram: 16458
+      ports:
+        - name: ens3f1
+          bridge: leaf1-br
+          ipv4: 172.16.80.11
+          netmask: 255.255.255.0
+      routes:
+        - network: 172.16.81.0
+          netmask: 255.255.255.0
+          gateway: 172.16.80.254
+    - hostname: afxc
+      type: linux
+      os: centos
+      role: afxc
+      spec:
+         cpu: 2
+         ram: 16458
+      ports:
+        - name: ens3f1
+          bridge: leaf1-br
+          ipv4: 172.16.80.12
+          netmask: 255.255.255.0
+      routes:
+        - network: 172.16.81.0
+          netmask: 255.255.255.0
+          gateway: 172.16.80.254
+    - hostname: afxflow
+      type: linux
+      os: centos
+      role: afxflow
+      spec:
+         cpu: 2
+         ram: 16458
+      ports:
+        - name: ens3f1
+          bridge: leaf1-br
+          ipv4: 172.16.80.13
+          netmask: 255.255.255.0
+      routes:
+        - network: 172.16.81.0
+          netmask: 255.255.255.0
+          gateway: 172.16.80.254
+    - hostname: compute2
+      type: linux
+      os: centos
+      role: compute
+      spec:
+         cpu: 2
+         ram: 16458
+      ports:
+        - name: ens3f1
+          bridge: leaf2-br
+          ipv4: 172.16.81.10
+          netmask: 255.255.255.0
+      routes:
+        - network: 172.16.80.0
+          netmask: 255.255.255.0
+          gateway: 172.16.81.254
+    - hostname: igwvm
+      type: linux
+      os: centos
+      role: igw
+      spec:
+         cpu: 2
+         ram: 16458
+      ports:
+        - name: ens3f1
+          bridge: vmx-igw
+          ipv4: 172.16.100.21
+          netmask: 255.255.255.0
+    - hostname: ccommand
+      type: linux
+      os: centos
+      role: command
+      spec:
+         cpu: 2
+         ram: 16458
+    - hostname: dummyvip
+      type: linux
+      os: centos
+      role: command
+      spec:
+         cpu: 1
+         ram: 2048

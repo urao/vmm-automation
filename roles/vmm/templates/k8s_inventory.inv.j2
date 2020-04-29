@@ -1,0 +1,21 @@
+[all]
+{% for key, value in inventory_list.iteritems() %}
+{{ value }}
+{% endfor %}
+
+[master]
+{% for key, value in inventory_list.iteritems() %}
+{% if 'master' in key  %}
+{{ value }} 
+{% endif %}
+{% endfor %}
+
+[slaves]
+{% for key, value in inventory_list.iteritems() %}
+{% if 'node' in key  %}
+{{ value }} 
+{% endif %}
+{% endfor %}
+
+[all:vars]
+ansible_ssh_user={{ linux.username }}
