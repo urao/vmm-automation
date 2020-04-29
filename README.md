@@ -38,8 +38,6 @@ scripts/setup.env:28:CONTRAIL_REGISTRY_PASSWORD="__fill__in"
 VMM_TOPO_TYPE=demo
 ```
 9. Enable passwordless login to VMM servers
-```
-```
 10. Run the script to deploy the selected topology [Ex. demo]
 ```
 ./scripts/create_deploy_demo_vmm.sh
