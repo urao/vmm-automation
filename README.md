@@ -18,6 +18,7 @@ grep -irn "fill__" *
 /vmm/data/user_disks/<username>/appformix/3_1_11/
 /vmm/data/user_disks/<username>/xflow/1_0_6/
 ```
+6. Currently supported topologies are showed [here](https://github.com/urao/vmm-automation/tree/master/automated-topologies)
 6. Update scripts/setup.env file with what topology you want to deploy
 ```
 # Available Topologies
@@ -36,7 +37,6 @@ VMM_TOPO_TYPE=demo
 ```
 ./scripts/create_deploy_demo_vmm.sh -c
 ```
-
 
 
 ## References
