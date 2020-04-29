@@ -14,8 +14,8 @@ clean_command_flag: "{{ lookup('env','CLEAN_COMMAND_FLAG') | default('', true) }
 
 # contrail deployment
 contrail:
-  registry_username: "__fill__in"
-  registry_password: "__fill__in"
+  registry_username: "{{ lookup('env','CONTRAIL_REGISTRY_USERNAME') | default('', true) }}"
+  registry_password: "{{ lookup('env','CONTRAIL_REGISTRY_PASSWORD') | default('', true) }}"
   release_tag: "{{ lookup('env', 'CONTRAIL_RELEASE_TAG') | default('1912.32', true) }}"
   registry: hub.juniper.net/contrail
   auth_mode: no-auth
@@ -51,12 +51,12 @@ ntp:
 # junos device credentials
 junos:
   login: "root"
-  password: "__fill__in"
+  password: "Embe1mpls"
 
 # linux VM credentials
 linux:
   username: "root"
-  password: "__fill__in"
+  password: "c0ntrail123"
 
 # copy Healthbot,Appformix and other images here
 images:

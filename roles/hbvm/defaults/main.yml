@@ -5,7 +5,7 @@ docker_centos_repo_url: "https://download.docker.com/linux/centos/docker-ce.repo
 
 # HB GUI credentials
 hb_ui_username: "admin"
-hb_ui_password: "__fill__in"
+hb_ui_password: "c0ntrail123"
 
 hb_version: 2.1
 hb_pkg_name: "healthbot-{{ hb_version }}-0.1.noarch.rpm"
