@@ -22,6 +22,19 @@ scripts/setup.env:28:CONTRAIL_REGISTRY_PASSWORD="__fill__in"
 4. Copy required healthbot version of the image to be installed, under /vmm/data/user_disks/\<username\>/ folder
 5. For Appformix deployment, Create appropriate version folder, as per below
 6. Copy Appformix and Appformix flows images in the below location based on the version
+
+    | Contrail | Appformix|
+    |----------|----------|
+    | 1912     | 1.0.6    |
+    | 2002     | 1.0.7    |
+    | 2003     | 1.0.7    |
+
+    | Contrail | Appformix Flows|
+    |----------|----------------|
+    | 1912     | 3.1.11         |
+    | 2002     | 3.1.14-a1      |
+    | 2003     | 3.1.15         |
+    
 ```
 /vmm/data/user_disks/<username>/appformix/3_1_11/
 /vmm/data/user_disks/<username>/xflow/1_0_6/
