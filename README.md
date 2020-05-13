@@ -1,7 +1,7 @@
 ### Steps to run the deployment in VMM Infra
 ----------------------------------------------
 
-
+0. Assuming you are running these playbooks from you laptop
 1. Clone the repo 
 ```
 git clone https://github.com/urao/vmm-automation.git
