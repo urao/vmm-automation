@@ -22,4 +22,5 @@ vmm capacity
 vmm start <name_of_device>
 vmm serial <name_of_device>
 vmm stop <name_of_device>
+vmm unbind <name_of_device>
 ```
